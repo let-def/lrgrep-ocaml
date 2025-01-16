@@ -243,13 +243,13 @@ let mkpat_opt_constraint ~loc p = function
   | Some typ -> mkpat ~loc (Ppat_constraint(p, typ))
 
 let syntax_error () =
-  raise Syntaxerr.Escape_error
+  () (*raise Syntaxerr.Escape_error*)
 
-let expecting loc nonterm =
-    raise Syntaxerr.(Error(Expecting(make_loc loc, nonterm)))
+let expecting _loc _nonterm =
+  () (*raise Syntaxerr.(Error(Expecting(make_loc loc, nonterm)))*)
 
-let removed_string_set loc =
-  raise(Syntaxerr.Error(Syntaxerr.Removed_string_set(make_loc loc)))
+let removed_string_set _loc =
+  () (*raise(Syntaxerr.Error(Syntaxerr.Removed_string_set(make_loc loc)))*)
 
 (* Helper functions for desugaring array indexing operators *)
 type paren_kind = Paren | Brace | Bracket
@@ -310,8 +310,8 @@ let builtin_arraylike_name loc _ ~assign paren_kind n =
   let prefix = match paren_kind with
     | Paren -> Lident "Array"
     | Bracket ->
-        if assign then removed_string_set loc
-        else Lident "String"
+        if assign then removed_string_set loc;
+        Lident "String"
     | Brace ->
        let submodule_name = match n with
          | One -> "Array1"
@@ -3096,12 +3096,16 @@ type_variance:
   | MINUS BANG | BANG MINUS                 { Contravariant, Injective }
   | INFIXOP2
       { if $1 = "+!" then Covariant, Injective else
-        if $1 = "-!" then Contravariant, Injective else
-        expecting $loc($1) "type_variance" }
+        if $1 = "-!" then Contravariant, Injective else (
+          expecting $loc($1) "type_variance";
+          (NoVariance, NoInjectivity)
+        ) }
   | PREFIXOP
       { if $1 = "!+" then Covariant, Injective else
-        if $1 = "!-" then Contravariant, Injective else
-        expecting $loc($1) "type_variance" }
+        if $1 = "!-" then Contravariant, Injective else (
+          expecting $loc($1) "type_variance";
+          (NoVariance, NoInjectivity)
+        ) }
 ;
 
 (* A sequence of constructor declarations is either a single BAR, which
