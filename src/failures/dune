@@ -1,0 +1,3 @@
+(executable
+  (name process)
+  (modules process))

@@ -1,0 +1,1 @@
+rule error_message = parse error (implementation, interface)
