@@ -7,7 +7,7 @@
 (executable
   (name interpreter)
   (modules interpreter interpreter_data)
-  (libraries ocaml_parser menhirSdk))
+  (libraries ocaml_parser lrgrep.interpreter menhirSdk))
 
 (executable
   (name embed)
