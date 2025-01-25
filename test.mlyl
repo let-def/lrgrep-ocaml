@@ -3,7 +3,6 @@ rule error_message = parse error
 (* Handling EOF of specialized entry points *)
 
 | [module_type /parse_module_type: module_type . EOF]
-  (* reversed_nonempty_llist(functor_arg) MINUSGREATER module_type WITH TYPE type_parameters label_longident COLONEQUAL LIDENT *)
   { "Unexpected content after module type declaration." }
 
 | [seq_expr /parse_expression: seq_expr . EOF]
@@ -210,25 +209,21 @@ rule error_message = parse error
 
 | /delimited_type_supporting_local_open: LPAREN . MODULE ext list(attribute) module_type RPAREN
   /delimited_type_supporting_local_open: LPAREN . core_type RPAREN
-  { "Expected \"module\" or type in parentheses." }
+  { "Expected "<type>" or \"module <module-type>\" in parentheses." }
 
-| /delimited_type_supporting_local_open: LBRACKET . row_field BAR reversed_separated_nonempty_llist(BAR,row_field) RBRACKET
-  /delimited_type_supporting_local_open: LBRACKET . BAR reversed_separated_nonempty_llist(BAR,row_field) RBRACKET
-  /delimited_type_supporting_local_open: LBRACKET . tag_field RBRACKET
+| /delimited_type_supporting_local_open: LBRACKET . tag_field RBRACKET
   { "Expected polymorphic variant tag (e.g., \"`A\" or \"`A of int\")." }
 
 | /simple_expr: simple_expr DOTOP . LBRACKET _*
   { "Expected \"(\", \"[\", or \"{\" after \".\" with custom operator." }
 
-| /simple_expr: simple_expr DOT mod_longident DOTOP . LBRACKET separated_or_terminated_nonempty_list(SEMI,expr) RBRACKET
-  /simple_expr: simple_expr DOT mod_longident DOTOP . LBRACE separated_or_terminated_nonempty_list(SEMI,expr) RBRACE
-  /simple_expr: simple_expr DOT mod_longident DOTOP . LPAREN separated_or_terminated_nonempty_list(SEMI,expr) RPAREN
+| /simple_expr: simple_expr DOT mod_longident DOTOP . LBRACKET _* RBRACKET
+  /simple_expr: simple_expr DOT mod_longident DOTOP . LBRACE _* RBRACE
+  /simple_expr: simple_expr DOT mod_longident DOTOP . LPAREN _* RPAREN
   { "Expected \"(\", \"[\", or \"{\" after \".\" with a custom operator." }
 
-| [possibly_poly(core_type) /method_: BANG list(attribute) private_flag LIDENT COLON possibly_poly(core_type) . EQUAL seq_expr]
-| [possibly_poly(core_type) /method_: list(attribute) private_flag LIDENT COLON possibly_poly(core_type) . EQUAL seq_expr]
-| [core_type /method_: BANG list(attribute) private_flag LIDENT COLON TYPE nonempty_list(mkrhs(LIDENT)) DOT core_type . EQUAL seq_expr]
-| [core_type /method_: list(attribute) private_flag LIDENT COLON TYPE nonempty_list(mkrhs(LIDENT)) DOT core_type . EQUAL seq_expr]
+| [possibly_poly(core_type) /method_: _* private_flag LIDENT COLON possibly_poly(core_type) . EQUAL seq_expr]
+| [core_type /method_: _* private_flag LIDENT COLON TYPE nonempty_list(mkrhs(LIDENT)) DOT core_type . EQUAL seq_expr]
   { "Expected \"=\" followed by method body." }
 
 | [labeled_simple_pattern /class_fun_def: labeled_simple_pattern . class_fun_def
@@ -295,9 +290,7 @@ rule error_message = parse error
   { "Expected class name followed by class definition after formal class parameters" }
 
 | /class_type_declarations: CLASS TYPE ext list(attribute) virtual_flag formal_class_parameters LIDENT . EQUAL class_signature list(post_item_attribute) list(and_class_type_declaration)
-  (* CLASS TYPE LIDENT *)
 | /list(and_class_type_declaration): AND list(attribute) virtual_flag formal_class_parameters LIDENT . EQUAL class_signature list(post_item_attribute) list(and_class_type_declaration)
-  (* CLASS TYPE LIDENT EQUAL class_signature AND LIDENT *)
   { "Expected '=' followed by class signature after class name" }
 
 | /labeled_simple_expr: QUESTION . LIDENT
@@ -312,91 +305,69 @@ rule error_message = parse error
 
 | [mutable_flag /value: list(attribute) mutable_flag . LIDENT type_constraint EQUAL seq_expr
                 /value: list(attribute) mutable_flag . LIDENT EQUAL seq_expr]
-  (* OBJECT VAL MUTABLE *)
   { "Expected value name after \"val\"" }
 
 | /signed_constant: PLUS . FLOAT
   /signed_constant: PLUS . INT
-  (* PLUS *)
   { "Expected a number after \"+\"" }
 
 | /signed_constant: MINUS . FLOAT
   /signed_constant: MINUS . INT
-  (* MINUS *)
   { "Expected a number after \"-\"" }
 
 | [meth_list /object_type: LESS meth_list . GREATER]
-  (* LESS DOTDOT *)
   { "Unclosed bracket: expected \">\" to close the method list" }
 
 | [possibly_poly(core_type) /primitive_declaration: EXTERNAL ext list(attribute) val_ident COLON possibly_poly(core_type) . EQUAL nonempty_list(raw_string) list(post_item_attribute)]
-  (* EXTERNAL val_ident COLON reversed_nonempty_llist(typevar) DOT LIDENT *)
   { "Expected \"= "symbol-name"\" after type of external primitive" }
 
 | [type_constraint /let_binding_body_no_punning: val_ident type_constraint . EQUAL seq_expr]
-  (* let_bindings(ext) AND val_ident COLONGREATER LIDENT *)
   { "Expected \"= <expression>\" inside let binding" }
 
 | [type_constraint /value: BANG list(attribute) mutable_flag LIDENT type_constraint . EQUAL seq_expr]
-  (* OBJECT VAL BANG LIDENT COLONGREATER LIDENT *)
 | [type_constraint /value: list(attribute) mutable_flag LIDENT type_constraint . EQUAL seq_expr]
-  (* OBJECT VAL LIDENT COLONGREATER LIDENT *)
   { "Expected \"= <expression>\" to define the value" }
 
 | [class_type /class_fun_binding: COLON class_type . EQUAL class_expr]
-  (* CLASS LIDENT COLON tuple_type MINUSGREATER LIDENT *)
   { "Expected \"=\" followed by class body after class type" }
 
 | [structure /module_expr: STRUCT list(attribute) structure . END]
-  (* STRUCT seq_expr QUOTED_STRING_ITEM *)
   { "Expected a definition, or \"end\" to close the \"struct\"" }
 
 | [list(text_csig(class_sig_field)) /class_signature: OBJECT list(attribute) class_self_type list(text_csig(class_sig_field)) . END]
-  (* CLASS LIDENT COLON OBJECT class_sig_field QUOTED_STRING_ITEM *)
   { "Expected a class field, or \"end\" to close the class signature" }
 
 | [list(text_cstr(class_field)) /class_simple_expr: OBJECT list(attribute) class_self_pattern list(text_cstr(class_field)) . END]
-  (* OBJECT INHERIT OBJECT class_field QUOTED_STRING_ITEM *)
   { "Expected a class field, or \"end\" to close the class body" }
 
 | [list(text_cstr(class_field)) /simple_expr: OBJECT ext list(attribute) class_self_pattern list(text_cstr(class_field)) . END]
-  (* OBJECT class_field QUOTED_STRING_ITEM *)
   { "Expected an object field, or \"end\" to close the object" }
 
 | [nonempty_list(mkrhs(LIDENT)) /let_binding_body_no_punning: val_ident COLON TYPE nonempty_list(mkrhs(LIDENT)) . DOT core_type EQUAL seq_expr]
 | [nonempty_list(mkrhs(LIDENT)) /method_: BANG list(attribute) private_flag LIDENT COLON TYPE nonempty_list(mkrhs(LIDENT)) . DOT core_type EQUAL seq_expr]
 | [nonempty_list(mkrhs(LIDENT)) /method_: list(attribute) private_flag LIDENT COLON TYPE nonempty_list(mkrhs(LIDENT)) . DOT core_type EQUAL seq_expr]
 | [reversed_nonempty_llist(typevar) /let_binding_body_no_punning: val_ident COLON reversed_nonempty_llist(typevar) . DOT core_type EQUAL seq_expr]
-  (* let_bindings(ext) AND val_ident COLON QUOTE UIDENT *)
   { "Expected \".\" after the list of type names" }
 
 | /index_mod: SEMI . DOTDOT
-  (* LPAREN DOTOP LBRACE SEMI *)
   { "Expected \"..\" after \";\" in index operator notation" }
 
 | /simple_pattern_not_ident: signed_constant DOTDOT . signed_constant
-  (* signed_constant DOTDOT *)
   { "Expected end of range after \"..\"." }
 
 | /let_binding_body_no_punning: val_ident COLON TYPE . nonempty_list(mkrhs(LIDENT)) DOT core_type EQUAL seq_expr
-  (* let_bindings(ext) AND val_ident COLON TYPE *)
 | /method_: BANG list(attribute) private_flag LIDENT COLON TYPE . nonempty_list(mkrhs(LIDENT)) DOT core_type EQUAL seq_expr
-  (* OBJECT METHOD BANG LIDENT COLON TYPE *)
 | /method_: list(attribute) private_flag LIDENT COLON TYPE . nonempty_list(mkrhs(LIDENT)) DOT core_type EQUAL seq_expr
-  (* OBJECT METHOD LIDENT COLON TYPE *)
   { "Expected a list of type names after \"type\"" }
 
 | /primitive_declaration: EXTERNAL ext list(attribute) val_ident COLON possibly_poly(core_type) EQUAL . nonempty_list(raw_string) list(post_item_attribute)
   { "Expected one or more symbol names to define the external"  }
 
 | /name_tag: BACKQUOTE . ident
-  (* BACKQUOTE *)
   { "Expected tag name after \"`\" (e.g., \"`A\")" }
 
 | /type_variable: QUOTE . ident
-  (* module_type WITH TYPE QUOTE *)
 | /reversed_nonempty_llist(typevar): reversed_nonempty_llist(typevar) QUOTE . ident
-  (* LESS LIDENT COLON reversed_nonempty_llist(typevar) QUOTE *)
   { "Expected type variable name" }
 
 | /toplevel_directive: HASH . ident TRUE
