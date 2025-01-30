@@ -25,6 +25,12 @@ rule error_message = parse error
 | [list(use_file_element) /use_file: seq_expr list(post_item_attribute) list(use_file_element) . EOF]
   { "Expected a definition (e.g., \"let x = ...\", \"type x = ...\")." }
 
+| [structure /module_expr: STRUCT list(attribute) structure . END]
+  { "Expected a definition, or \"end\" to close the \"struct\"" }
+
+| [list(text_csig(class_sig_field)) /class_signature: OBJECT list(attribute) class_self_type list(text_csig(class_sig_field)) . END]
+  { "Expected a class field, or \"end\" to close the class signature" }
+
 (* More regular error messages *)
 
 | [let_bindings(ext) /fun_expr: let_bindings(ext) . IN seq_expr]
@@ -57,25 +63,6 @@ rule error_message = parse error
 | /mk_longident(mod_longident,UIDENT): mod_longident DOT . UIDENT
 | /mk_longident(mod_ext_longident,UIDENT): mod_ext_longident DOT . UIDENT
   { "Expected uppercase identifier after \".\"." }
-
-| [_* /_* . RPAREN _*]
-  (* FIXME: Not necessarily an expression *)
-  { "Unclosed \"(\": expected \")\" to close this expression." }
-
-| [_* /_* . RBRACKET _*]
-  { "Unclosed \"[\": expected \"]\" to close this collection." }
-
-| [_* /_* . RBRACE _*]
-  { "Unclosed \"{\": expected \"}\"." }
-
-| [_* /_* . GREATERRBRACE _*]
-  { "Unclosed \"{<\": expected \">}\"." }
-
-| [_* /_* . BARRBRACKET _*]
-  { "Unclosed \"[|\": expected \"|]\"." }
-
-| [_* /_* . tuple_type _*]
-  { "Expected type in this context." }
 
 | [reversed_nonempty_llist(functor_arg) /module_type: reversed_nonempty_llist(functor_arg) . MINUSGREATER module_type]
   { "Expected \"-> <module-type>\" after functor arguments." }
@@ -214,6 +201,9 @@ rule error_message = parse error
 | /delimited_type_supporting_local_open: LBRACKET . tag_field RBRACKET
   { "Expected polymorphic variant tag (e.g., \"`A\" or \"`A of int\")." }
 
+| [_* /_* . tuple_type _*]
+  { "Expected type in this context." }
+
 | /simple_expr: simple_expr DOTOP . LBRACKET _*
   { "Expected \"(\", \"[\", or \"{\" after \".\" with custom operator." }
 
@@ -331,12 +321,6 @@ rule error_message = parse error
 | [class_type /class_fun_binding: COLON class_type . EQUAL class_expr]
   { "Expected \"=\" followed by class body after class type" }
 
-| [structure /module_expr: STRUCT list(attribute) structure . END]
-  { "Expected a definition, or \"end\" to close the \"struct\"" }
-
-| [list(text_csig(class_sig_field)) /class_signature: OBJECT list(attribute) class_self_type list(text_csig(class_sig_field)) . END]
-  { "Expected a class field, or \"end\" to close the class signature" }
-
 | [list(text_cstr(class_field)) /class_simple_expr: OBJECT list(attribute) class_self_pattern list(text_cstr(class_field)) . END]
   { "Expected a class field, or \"end\" to close the class body" }
 
@@ -394,3 +378,19 @@ rule error_message = parse error
 
 | /class_simple_expr: LBRACKET reversed_separated_nonempty_llist(COMMA,core_type) RBRACKET . class_longident
   { "Expected class path after class parameters." }
+
+| [_* /_* . RPAREN _*]
+  (* FIXME: Not necessarily an expression *)
+  { "Unclosed \"(\": expected \")\" to close this expression." }
+
+| [_* /_* . RBRACKET _*]
+  { "Unclosed \"[\": expected \"]\" to close this collection." }
+
+| [_* /_* . RBRACE _*]
+  { "Unclosed \"{\": expected \"}\"." }
+
+| [_* /_* . GREATERRBRACE _*]
+  { "Unclosed \"{<\": expected \">}\"." }
+
+| [_* /_* . BARRBRACKET _*]
+  { "Unclosed \"[|\": expected \"|]\"." }
