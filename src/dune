@@ -6,8 +6,8 @@
 
 (executable
   (name interpreter)
-  (modules interpreter interpreter_data)
-  (libraries ocaml_parser lrgrep.interpreter menhirSdk))
+  (modules interpreter)
+  (libraries ocaml_parser lrgrep.interpreter interpreter_data menhirSdk))
 
 (executable
   (name embed)
@@ -18,7 +18,12 @@
   (deps    parser_raw.cmly)
   (action
     (with-stdout-to %{targets}
-       (run %{exe:./embed.exe} grammar=parser_raw.cmly))))
+       (run %{exe:./embed.exe} content=parser_raw.cmly))))
+
+(library
+  (name interpreter_data)
+  (modules interpreter_data)
+  (wrapped false))
 
 (library
   (name ocaml_parser)

@@ -44,16 +44,8 @@ let specs = [
 
 let () = Arg.parse specs (fun name -> opt_infile := Some name) usage
 
-let grammar_filename =
-  let filename, oc = Filename.open_temp_file "lrgrep-interpreter" "cmly" in
-  output_string oc Interpreter_data.grammar;
-  close_out oc;
-  filename
-
-module Grammar = MenhirSdk.Cmly_read.Read(struct let filename = grammar_filename end)
+module Grammar = MenhirSdk.Cmly_read.FromString(Interpreter_data)
 module Interpreter = Lrgrep_interpreter.Make(Grammar)()
-
-let () = Sys.remove grammar_filename
 
 let get_token lexbuf =
   match Lexer_raw.token lexbuf with
