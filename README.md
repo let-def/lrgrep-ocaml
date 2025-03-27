@@ -11,8 +11,7 @@ Applying LRGrep to OCaml frontend:
 
 ## Working on OCaml grammar
 
-For now, the main focus is on the [ocaml]() sub-directory, and
-[src/parse_errors.mlyl]() specifically.
+For now, the main focus is on [src/parse_errors.mlyl]().
 
 My current workflow is as follow:
 
@@ -20,7 +19,7 @@ My current workflow is as follow:
   message is quite bad
 - by reading the [grammar](src/parser_raw.mly) and the output of the interpreter, get an idea of
   what the parsing situation looks like around the error point
-- craft an error rule, and debug it using by passing `-pp frontend` to  `ocamlc` 
+- craft an error rule, and debug it using by passing `-pp frontend` to `ocamlc`
 
 ### Setting up the tools
 
@@ -31,7 +30,7 @@ $ ocamlc -version
 5.3.0
 ```
 
-Clone the repository and install dependencies:
+Clone the main `lrgrep` repository and install dependencies:
 
 ```bash
 $ git clone https://github.com/let-def/lrgrep.git
@@ -39,7 +38,18 @@ $ cd lrgrep
 $ opam install menhir fix cmon
 ```
 
-At this point, `make` should succeed (contact me if not) and produce the three binaries: `lrgrep.exe`, `frontend.bc` and `interpreter.exe`.
+At this point, `make` should succeed (contact me if not) and produce a `lrgrep.exe` binary.
+To install the binary into your path, run `dune install`
+
+Next, clone this repository
+
+```bash
+$ cd ..
+$ git clone https://github.com/let-def/lrgrep-ocaml.git
+$ cd lrgrep-ocaml
+```
+
+And run `make` to build.
 
 It is usually better to test with the bytecode frontend as it leads to shorter iteration cycles.
 
@@ -50,6 +60,7 @@ Try the new frontend with some simple examples:
 ```
 $ ocamlc -c -pp _build/default/src/frontend.bc test_ok.ml
 ```
+
 This first example compiled successfully.
 
 ```
@@ -95,7 +106,7 @@ Once you made sure your setup is working (`make` is (re-)building the frontend a
 
 The binary offers three sub-commands: `compile`, `enumerate` and `interpret`. The sub-command that is selected is the first argument on the command line. It defaults to `compile` if the first argument is not a command.
 
-### Compile 
+### Compile
 
 `compile` is the default command and is used to generate an error matcher from a grammar and an error specification. It can also check grammar error coverage.
 
