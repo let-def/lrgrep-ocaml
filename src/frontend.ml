@@ -15,6 +15,8 @@ let usage =
 
 exception Abort_parsing
 
+let () = Lexer.init ()
+
 let oprintf oc fmt =
   Format.fprintf (Format.formatter_of_out_channel oc) fmt
 
