@@ -44,7 +44,7 @@ let specs = [
 
 let () = Arg.parse specs (fun name -> opt_infile := Some name) usage
 
-let () = Lexer.init ()
+let () = Lexer_raw.init ()
 
 module Grammar = MenhirSdk.Cmly_read.FromString(Interpreter_data)
 module Interpreter = Lrgrep_interpreter.Make(Grammar)()
