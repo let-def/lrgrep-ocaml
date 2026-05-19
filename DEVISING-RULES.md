@@ -2,10 +2,10 @@
 
 The important files to specify the grammar and the error messages are:
 
-- the parser `ocaml/parser_raw.mly`, and the lexer `ocaml/lexer_raw.mll`, which are taken from the OCaml frontend with builtin error handling removed
-- `ocaml/parse_errors.mlyl` in which we define the error matching rules.
+- the parser `src/parser/parser.mly`, and the lexer `src/parser/lexer.mll`, which are taken from the OCaml frontend with builtin error handling removed
+- `src/parser/errors.mlyl` in which we define the error matching rules.
 
-In this document, we will see how to modify `ocaml/parse_errors.mlyl` to deal with specific situations.
+In this document, we will see how to modify `src/parser/errors.mlyl` to deal with specific situations.
 
 ### Setting frontend
 
@@ -15,10 +15,10 @@ To use the new frontend remember to setup `OCAMLPARAM` with `demo/setup_shell.sh
 $ echo $OCAMLPARAM
 $ # New frontend is not setup!
 $ sh demo/setup_shell.sh
-export OCAMLPARAM='pp=/.../lrgrep/_build/default/ocaml/frontend.bc,_'
+export OCAMLPARAM='pp=/.../lrgrep/_build/default/src/frontend.bc,_'
 $ eval `sh demo/setup_shell.sh`
 $ echo $OCAMLPARAM
-pp=/.../lrgrep/_build/default/ocaml/frontend.bc,_
+pp=/.../lrgrep/_build/default/src/frontend.bc,_
 $ # New frontend is ready.
 ```
 
@@ -34,7 +34,7 @@ $ OCAMLPARAM= ocamlc ... # Default frontend will be used for this command
 An iteration cycle usually looks like:
 
 1. Start from a simple input with a syntax error
-2. Add or tweak a rule in `ocaml/parse_errors.mlyl`
+2. Add or tweak a rule in `src/parser/errors.mlyl`
 3. Run `make` to rebuild the frontend
 4. Run `ocamlc` on the input
 
@@ -42,8 +42,8 @@ Repeat as necessary.
 
 Two tools are provided to help working with error messages:
 
-- the interpreter, invoked with `dune exec ocaml/interpreter.exe <input-file.ml>` , which gives detailed information about the state of the parser at the point of failure
-- coverage checks using `dune exec src/main.exe -- -coverage ocaml/parse_errors.mlyl -g ./_build/default/ocaml/parser_raw.cmly`, which will print pieces of input which are not handled by any rule
+- the interpreter, invoked with `dune exec lrgrep-ocaml -- interpret <input-file.ml>` , which gives detailed information about the state of the parser at the point of failure
+- coverage checks using `dune exec lrgrep-ocaml -- compiler -s src/parser/errors.mlyl -g ./_build/default/src/parser/parser.cmly`, which will print pieces of input which are not handled by any rule
   **coverage check** is disabled at the moment.
 
 ## Simple case, starting from an sample input
@@ -57,17 +57,17 @@ The type declarations in this part switches from a colon `:` to an equal sign `=
 type 'a grid = 'a Array.t Array.t
 type problem = { initial_grid : int option grid }
 type available = { loc : int * int; possible : int list }
-type state = { 
+type state = {
   problem : problem;
   current_grid : int option grid;
   available = available list
-} 
+}
 ```
 
 Without any patterns `ocamlc` just yields a syntax error:
 
 ```ocaml
-$ ocamlc demo/stackoverflow3.ml 
+$ ocamlc demo/stackoverflow3.ml
 File "demo/stackoverflow3.ml", line 7, characters 12-13:
 7 |   available = available list
                 ^
@@ -112,7 +112,7 @@ It also means that our rule is not total: it should only apply when the lookahea
 | [label_declaration: mutable_flag LIDENT . COLON]
   partial {
     match token with
-    | Parser_raw.EQUAL -> 
+    | Parser_raw.EQUAL ->
       Some "Expecting ':' to declare the type of a record field, not '='"
     | _ -> None
   }
@@ -123,14 +123,14 @@ Next we recompile the ocaml frontend with `make` for the frontend to pick up the
 Rerunning `ocamlc` now gives a nice error message:
 
 ```
-$ ocamlc demo/stackoverflow3.ml 
+$ ocamlc demo/stackoverflow3.ml
 File "demo/stackoverflow3.ml", line 9, characters 76-77:
-9 | type state = { problem : problem; current_grid : int option grid; available = available list } 
+9 | type state = { problem : problem; current_grid : int option grid; available = available list }
                                                                                 ^
 Error: Expecting ':' to declare the type of a record field, not '='
 ```
 
-## 
+##
 
 ## A more complex example
 
@@ -140,13 +140,13 @@ making the parser believe that the developer wanted to express a one-armed if:
 
 ```ocaml
 let rec list_above thresh lst =
-  if lst = [] then 
+  if lst = [] then
     printf("Herewego");
-  else 
-    begin 
-  if (List.hd lst) >= thresh then 
+  else
+    begin
+  if (List.hd lst) >= thresh then
     (((List.hd lst)::(list_above thresh List.tl lst)))
-  else if (List.hd lst) < thresh then 
+  else if (List.hd lst) < thresh then
     ((list_above thresh List.tl lst));
 end
 ;;
@@ -223,12 +223,11 @@ partial {
 }
 ```
 
-After adding the above to `ocaml/parse_errors.mlyl` we again recompile
-the frontend by running `make`. We can now observe the improved error
-message:
+After adding the above to `src/parser/errors.mlyl` we again recompile the
+frontend by running `make`. We can now observe the improved error message:
 
 ```
-$ ocamlc demo/stackoverflow2.ml 
+$ ocamlc demo/stackoverflow2.ml
 File "demo/stackoverflow2.ml", line 6, characters 2-6:
 6 |   else
       ^^^^
