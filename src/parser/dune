@@ -1,0 +1,23 @@
+(rule
+  (targets grammar_data.ml)
+  (deps    parser.cmly)
+  (action
+    (with-stdout-to %{targets}
+       (run lrgrep-embed content=parser.cmly))))
+
+(ocamllex lexer)
+
+(menhir
+  (modules parser)
+  (flags :standard --table --lalr --cmly --inspection))
+
+(library
+ (name ocaml_parser)
+ (modules lexer parser parser_def grammar_data errors)
+  (libraries menhirLib compiler-libs.common lrgrep.runtime))
+
+(rule
+  (targets errors.ml coverage.md)
+  (deps    parser.cmly errors.lrgrep)
+  (action
+     (run lrgrep -g parser.cmly -s errors.lrgrep compile -o errors.ml --cover-report coverage.md)))

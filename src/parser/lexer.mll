@@ -16,9 +16,10 @@
 (* The lexer definition *)
 
 {
+[@@@ocaml.warning "-9"]
 open Lexing
 open Misc
-open Parser_raw
+open Parser
 
 type error =
   | Illegal_character of char
@@ -131,6 +132,12 @@ let populate_keywords (version,keywords) =
     | exception Not_found -> Hashtbl.replace tbl name None
     ) keywords
 
+let as_keyword token =
+  Hashtbl.to_seq keyword_table
+  |> Seq.find_map (function
+       | (text, Some token') when token = token' -> Some text
+       | _ -> None
+     )
 
 (* To buffer string literals *)
 
@@ -185,7 +192,7 @@ let store_escaped_char lexbuf c =
 let store_escaped_uchar lexbuf u =
   if in_comment () then store_lexeme lexbuf else store_string_utf_8_uchar u
 
-let compute_quoted_string_idloc {Location.loc_start = orig_loc; _} shift id =
+let compute_quoted_string_idloc {Location.loc_start = orig_loc } shift id =
   let id_start_pos = orig_loc.Lexing.pos_cnum + shift in
   let loc_start =
     Lexing.{orig_loc with pos_cnum = id_start_pos }
@@ -400,7 +407,10 @@ let prepare_error loc = function
       let msg = "Illegal empty character literal ''" in
       let sub =
         [Location.msg
-           "@{<hint>Hint@}: Did you mean ' ' or a type variable 'a?"] in
+           "@{<hint>Hint@}: Did you mean %a or a type variable %a?"
+           Style.inline_code "' '"
+           Style.inline_code "'a"
+        ] in
       Location.error ~loc ~sub msg
   | Keyword_as_label kwd ->
       Location.errorf ~loc
@@ -419,7 +429,7 @@ let prepare_error loc = function
   | Invalid_encoding s ->
     Location.errorf ~loc "Invalid encoding of identifier %s." s
   | Invalid_char_in_ident u ->
-      Location.errorf ~loc "Invalid character U+%X in identifier"
+      Location.errorf ~loc "Invalid character U+%04X in identifier"
          (Uchar.to_int u)
   | Capitalized_raw_identifier lbl ->
       Location.errorf ~loc
@@ -470,7 +480,6 @@ let symbolchar_or_hash =
 let kwdopchar =
   ['$' '&' '*' '+' '-' '/' '<' '=' '>' '@' '^' '|']
 
-let ident = (lowercase | uppercase) identchar*
 let ident_ext = identstart_ext  identchar_ext*
 let extattrident = ident_ext ('.' ident_ext)*
 
@@ -826,7 +835,7 @@ and comment = parse
         store_normalized_newline nl;
         comment lexbuf
       }
-  | ident
+  | ident_ext
       { store_lexeme lexbuf; comment lexbuf }
   | _
       { store_lexeme lexbuf; comment lexbuf }

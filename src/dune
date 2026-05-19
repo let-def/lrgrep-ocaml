@@ -1,45 +1,11 @@
 (executable
   (name frontend)
-  (modules frontend parse_errors)
+  (public_name ocaml-lrgrep-pp)
+  (modules frontend)
   (modes byte native)
   (libraries ocaml_parser))
 
 (executable
-  (name interpreter)
-  (modules interpreter)
-  (libraries ocaml_parser lrgrep.interpreter interpreter_data menhirSdk))
-
-(executable
-  (name embed)
-  (modules embed))
-
-(rule
-  (targets interpreter_data.ml)
-  (deps    parser_raw.cmly)
-  (action
-    (with-stdout-to %{targets}
-       (run %{exe:./embed.exe} content=parser_raw.cmly))))
-
-(library
-  (name interpreter_data)
-  (modules interpreter_data)
-  (wrapped false))
-
-(library
-  (name ocaml_parser)
-  (modules lexer_raw parser_raw parser_def)
-  (wrapped false)
-  (libraries compiler-libs.common menhirLib lrgrep.runtime))
-
-(ocamllex lexer_raw)
-
-(menhir
-  (modules parser_raw)
-  (flags :standard --inspection --table --cmly))
-
-(rule
-  (targets parse_errors.ml)
-  (deps    parser_raw.cmly parse_errors.mlyl)
-  (action
-     (run lrgrep parse_errors.mlyl -g parser_raw.cmly
-          -o parse_errors.ml)))
+  (name lrgrep_ocaml)
+  (public_name lrgrep-ocaml)
+  (libraries lrgrep.top ocaml_parser))

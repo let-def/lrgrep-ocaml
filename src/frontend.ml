@@ -1,10 +1,14 @@
+open Ocaml_parser
+
 let usage =
-  "Usage: ocaml-lrgrep <file>\n\
-   --------------------------\n\n\
-   ocaml-lrgrep is an alternative frontend for OCaml.\n\
+  "Usage: ocaml-lrgrep-pp <file>\n\
+   -----------------------------\n\n\
+   ocaml-lrgrep-pp is an alternative frontend for OCaml.\n\
    It is used to prototype better syntax error messages.\n\
    \n\
-   To use it, pass `-pp ocaml-lrgrep` to ocaml compilers.\n\
+   To use it, pass `-pp ocaml-lrgrep-pp` to ocaml compilers.\n\
+   Alternatively, you can set the environment variable:
+     OCAMLPARAM=pp=ocaml-lrgrep-pp
    \n\
    Usage for tests: ocaml-lrgrep --test <file1> <file2...>\n\
    -------------------------------------------------------\n\n\
@@ -15,7 +19,7 @@ let usage =
 
 exception Abort_parsing
 
-let () = Lexer_raw.init ()
+let () = Lexer.init ()
 
 let oprintf oc fmt =
   Format.fprintf (Format.formatter_of_out_channel oc) fmt
@@ -31,10 +35,10 @@ let error_and_exit oc lexbuf msg =
   raise Abort_parsing
 
 let get_token oc lexbuf =
-  match Lexer_raw.token lexbuf with
-  | exception Lexer_raw.Error (err, loc) ->
+  match Lexer.token lexbuf with
+  | exception Lexer.Error (err, loc) ->
     oprintf oc "%a\n%!" Location.print_report
-      (Lexer_raw.prepare_error loc err);
+      (Lexer.prepare_error loc err);
     raise Abort_parsing
   | tok ->
     (tok, lexbuf.Lexing.lex_start_p, lexbuf.Lexing.lex_curr_p)
@@ -42,12 +46,12 @@ let get_token oc lexbuf =
 let parse
     (type a)
     oc
-    (checkpoint : Lexing.position -> a Parser_raw.MenhirInterpreter.checkpoint)
+    (checkpoint : Lexing.position -> a Parser.MenhirInterpreter.checkpoint)
     (lexbuf : Lexing.lexbuf)
     : a
   =
   Location.input_name := lexbuf.lex_start_p.pos_fname;
-  let module I = Parser_raw.MenhirInterpreter in
+  let module I = Parser.MenhirInterpreter in
   let rec loop : a I.env -> _ -> a I.checkpoint -> _ = fun env tok -> function
     | I.InputNeeded env' as cp ->
       let tok' = get_token oc lexbuf in
@@ -66,22 +70,11 @@ let parse
     | I.Accepted x -> x
     | I.Rejected -> assert false
     | I.HandlingError _ ->
-      match Parse_errors.lrgrep_run Parse_errors.lrgrep_program_error_message env with
-      | [] -> error_and_exit oc lexbuf
-                "Syntax error (no handler for it)"
-      | matches ->
-        if false then
-          Printf.eprintf "Matches: %s\n"
-            (String.concat ", " (List.map (fun (x, _) -> string_of_int x) matches));
-        let rec loop = function
-          | [] -> error_and_exit oc lexbuf
-                    "Syntax error (partial handler did not handle the case)"
-          | m :: ms ->
-            match Parse_errors.lrgrep_execute_error_message m tok with
-            | None -> loop ms
-            | Some err -> error_and_exit oc lexbuf err
-        in
-        loop matches
+       let message =
+         Option.value (Errors.error_messages env tok)
+           ~default:"Syntax error (no handler for it)"
+       in
+       error_and_exit oc lexbuf message
   in
   match checkpoint lexbuf.lex_curr_p with
   | I.InputNeeded env as cp ->
@@ -106,9 +99,9 @@ let pp_main path =
   let ic, lexbuf, is_interface = open_input path in
   match
     if is_interface then
-      pp_parse Pparse.Signature Parser_raw.Incremental.interface lexbuf
+      pp_parse Pparse.Signature Parser.Incremental.interface lexbuf
     else
-      pp_parse Pparse.Structure Parser_raw.Incremental.implementation lexbuf
+      pp_parse Pparse.Structure Parser.Incremental.implementation lexbuf
   with
   | () -> close_in ic
   | exception Abort_parsing ->
@@ -120,9 +113,9 @@ let test_main path =
   let ic, lexbuf, is_interface = open_input path in
   try
     if is_interface then
-      ignore (parse stdout Parser_raw.Incremental.interface lexbuf)
+      ignore (parse stdout Parser.Incremental.interface lexbuf)
     else
-      ignore (parse stdout Parser_raw.Incremental.implementation lexbuf);
+      ignore (parse stdout Parser.Incremental.implementation lexbuf);
     close_in ic;
     Printf.printf "--- OK %s\n" path;
   with Abort_parsing ->
