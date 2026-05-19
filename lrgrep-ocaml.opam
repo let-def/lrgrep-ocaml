@@ -1,0 +1,16 @@
+opam-version: "2.0"
+maintainer: "Frederic Bour <frederic.bour@lakaban.net>"
+authors: "Frederic Bour <frederic.bour@lakaban.net>"
+homepage: "https://github.com/let-def/lrgrep-ocaml"
+bug-reports: "https://github.com/let-def/lrgrep-ocaml"
+license: "ISC"
+dev-repo: "git+https://github.com/let-def/lrgrep-ocaml.git"
+build: [
+  ["dune" "subst"] {dev}
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+]
+depends: [
+  "lrgrep" {>= "0.3"}
+]
+synopsis: "Prototype better syntax error messages for OCaml"
