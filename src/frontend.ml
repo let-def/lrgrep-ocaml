@@ -8,7 +8,7 @@ let usage =
    \n\
    To use it, pass `-pp ocaml-lrgrep-pp` to ocaml compilers.\n\
    Alternatively, you can set the environment variable:
-     OCAMLPARAM=pp=ocaml-lrgrep-pp
+     OCAMLPARAM=pp=ocaml-lrgrep-pp,_
    \n\
    Usage for tests: ocaml-lrgrep --test <file1> <file2...>\n\
    -------------------------------------------------------\n\n\
