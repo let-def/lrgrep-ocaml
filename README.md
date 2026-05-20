@@ -1,23 +1,21 @@
 # lrgrep-ocaml
 
-Applying LRGrep to OCaml frontend:
-- [parser_raw.mly](src/parser_raw.mly) and [lexer_raw.mll](src/lexer_raw.mll) define an OCaml 5.3 compatible grammar with most syntax error reporting removed
-- [parse_errors.mlyl](src/parse_errors.mlyl) define the error rules for this grammar
+Applying [LRgrep](https://github.com/let-def/lrgrep) to OCaml frontend:
+- [parser/parser.mly](src/parser/parser.mly) and [parser/lexer.mll](src/parser/lexer.mll) define a grammar compatible with OCaml 5.4.1 (upstream one with builtin syntax error handling removed)
+- [parser/errors.lrgrep](src/parser/errors.lrgrep) define the error rules for this grammar
 - the [frontend](src/frontend.ml) binary is an alternative parser that can be used with
   ocamlc/ocamlopt 5.3 (using the `-pp <path-to-frontend.exe>` flag)
-- the [interpreter](src/interpreter.ml) binary is a tool that takes an incorrect input and
-  prints detailed information on the parsing process at the point of failure,
-  useful for devising good error patterns
+- [lrgrep_ocaml](src/lrgrep_ocaml.ml) is a variant of the lrgrep binary specialized on OCaml syntax
 
 ## Working on OCaml grammar
 
-For now, the main focus is on [src/parse_errors.mlyl]().
+For now, the main focus is on [src/parser/errors.lrgrep](src/parser/errors.lrgrep).
 
 My current workflow is as follow:
 
 - starts from an example, an OCaml code with a syntax error for which the
   message is quite bad
-- by reading the [grammar](src/parser_raw.mly) and the output of the interpreter, get an idea of
+- by reading the [grammar](src/parser/parser.mly) and the output of the interpreter, get an idea of
   what the parsing situation looks like around the error point
 - craft an error rule, and debug it using by passing `-pp frontend` to `ocamlc`
 
@@ -94,7 +92,7 @@ Error: Spurious semi-colon at 2:9
 # In the updated environment, the new frontend is picked up automatically
 ```
 
-Now you are ready to iterate on [src/parse_errors.mlyl]() to produce new rules.
+Now you are ready to iterate on [src/parser/errors.lrgrep](src/parser/errors.lrgrep) to produce new rules.
 
 **Note: `unset OCAMLPARAM` to switch back to the normal frontend**
 

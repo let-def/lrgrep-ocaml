@@ -3,9 +3,9 @@
 The important files to specify the grammar and the error messages are:
 
 - the parser `src/parser/parser.mly`, and the lexer `src/parser/lexer.mll`, which are taken from the OCaml frontend with builtin error handling removed
-- `src/parser/errors.mlyl` in which we define the error matching rules.
+- `src/parser/errors.lrgrep` in which we define the error matching rules.
 
-In this document, we will see how to modify `src/parser/errors.mlyl` to deal with specific situations.
+In this document, we will see how to modify `src/parser/errors.lrgrep` to deal with specific situations.
 
 ### Setting frontend
 
@@ -34,7 +34,7 @@ $ OCAMLPARAM= ocamlc ... # Default frontend will be used for this command
 An iteration cycle usually looks like:
 
 1. Start from a simple input with a syntax error
-2. Add or tweak a rule in `src/parser/errors.mlyl`
+2. Add or tweak a rule in `src/parser/errors.lrgrep`
 3. Run `make` to rebuild the frontend
 4. Run `ocamlc` on the input
 
@@ -42,9 +42,8 @@ Repeat as necessary.
 
 Two tools are provided to help working with error messages:
 
-- the interpreter, invoked with `dune exec lrgrep-ocaml -- interpret <input-file.ml>` , which gives detailed information about the state of the parser at the point of failure
-- coverage checks using `dune exec lrgrep-ocaml -- compiler -s src/parser/errors.mlyl -g ./_build/default/src/parser/parser.cmly`, which will print pieces of input which are not handled by any rule
-  **coverage check** is disabled at the moment.
+- the interpreter, invoked with `dune exec lrgrep-ocaml interpret < input-file.ml`, which gives detailed information about the state of the parser at the point of failure
+- coverage checks using `dune exec lrgrep-ocaml -- compiler -s src/parser/errors.lrgrep --cover-report report.md`, which list sample inputs not handled by any rule in `report.md`
 
 ## Simple case, starting from an sample input
 
@@ -77,7 +76,7 @@ Error: Syntax error
 We now run the interpreter:
 
 ```
-$ dune exec ocaml/interpreter.exe demo/stackoverflow3.ml
+$ dune exec lrgrep-ocaml interpret < demo/stackoverflow3.ml
 File "demo/stackoverflow3.ml", line 9, characters 76-77, parser stack (most recent first):
 - line 9:66-75	LIDENT
 		  [label_declaration_semi: mutable_flag LIDENT . COLON possibly_poly(core_type_no_attr) list(attribute) SEMI list(attribute)]
@@ -106,7 +105,7 @@ We can now capture the problematic situation with a pattern recognizing precisel
 After matching this situation, we want to express that we are looking ahead at an equal sign in the token stream.
 The lookahead `token` is passed as a parameter to the semantic action so we can simply pattern match on it.
 
-It also means that our rule is not total: it should only apply when the lookahead token is `Parser_raw.EQUAL`. This is expressed by adding the `partial` keyword before the semantic action. When an action is `partial`, it should evaluate to an option. Returning `Some _` means that the rule applied, returning `None` forces lrgrep to resume matching with the next rules. With this in mind, we now formulate the following pattern and add it to `ocaml/parse_errors.mlyl`:
+It also means that our rule is not total: it should only apply when the lookahead token is `Parser_raw.EQUAL`. This is expressed by adding the `partial` keyword before the semantic action. When an action is `partial`, it should evaluate to an option. Returning `Some _` means that the rule applied, returning `None` forces lrgrep to resume matching with the next rules. With this in mind, we now formulate the following pattern and add it to `src/parser/errors.lrgrep`:
 
 ```
 | [label_declaration: mutable_flag LIDENT . COLON]
@@ -154,9 +153,9 @@ end
 
 We again run the interpreter to dump the state of the parser when it fails:
 ```
-$ dune exec ../ocaml/interpreter.exe stackoverflow2.ml
-Entering directory '/home/jmi/software/lrgrep'
-File "stackoverflow2.ml", line 4, characters 2-6, parser stack (most recent first):
+$ dune exec lrgrep-ocaml interpret < demo/stackoverflow2.ml
+...
+$ Parser stack (most recent first):
 - line 3:22-23	SEMI
   	  seq_expr ::= expr SEMI . PERCENT attr_id seq_expr
   	  seq_expr ::= expr SEMI . seq_expr
@@ -223,7 +222,7 @@ partial {
 }
 ```
 
-After adding the above to `src/parser/errors.mlyl` we again recompile the
+After adding the above to `src/parser/errors.lrgrep` we again recompile the
 frontend by running `make`. We can now observe the improved error message:
 
 ```
