@@ -4,7 +4,7 @@ Applying [LRgrep](https://github.com/let-def/lrgrep) to OCaml frontend:
 - [parser/parser.mly](src/parser/parser.mly) and [parser/lexer.mll](src/parser/lexer.mll) define a grammar compatible with OCaml 5.4.1 (upstream one with builtin syntax error handling removed)
 - [parser/errors.lrgrep](src/parser/errors.lrgrep) define the error rules for this grammar
 - the [frontend](src/frontend.ml) binary is an alternative parser that can be used with
-  ocamlc/ocamlopt 5.3 (using the `-pp <path-to-frontend.exe>` flag)
+  ocamlc/ocamlopt 5.4 (using the `-pp <path-to-frontend.exe>` flag)
 - [lrgrep_ocaml](src/lrgrep_ocaml.ml) is a variant of the lrgrep binary specialized on OCaml syntax
 
 ## Working on OCaml grammar
@@ -21,11 +21,11 @@ My current workflow is as follow:
 
 ### Setting up the tools
 
-All the work is done using OCaml 5.3. Make sure you are using the right switch:
+All the work is done using OCaml 5.4.1. Make sure you are using the right switch:
 
 ```bash
 $ ocamlc -version
-5.3.0
+5.4.1
 ```
 
 Clone the main `lrgrep` repository and install dependencies:
